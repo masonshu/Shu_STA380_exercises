@@ -1,0 +1,74 @@
+---
+Name: Mason Shu
+Date: 8/18/2024
+STA 380, Part 2: Exercises
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# Load libraries
+
+
+```
+
+# Probability practice
+## Part A
+```{r, echo=FALSE}
+# The fraction of Random Clickers (RC) is P(RC) = 0.3, so the fraction of Truthful Clickers (RC) is P(TC) = 1 - P(RC) = 0.7
+# The probability that a Random Clicker answers "Yes" is P(Yes|RC) = 0.5, and the probability that they answer "No" is P(No|RC) = 0.5
+# The overall fraction of people who answered "Yes" is 65%, so P(Yes) = 0.65
+# Find probability that a Truthful Clicker answered "Yes": P(Yes|TC)
+
+# Total Probability: P(Yes) = P(Yes|RC) * P(RC) + P(Yes|TC) * P(TC)
+# 0.65 = 0.5 * 0.3 + P(Yes|TC) * 0.7
+(0.65 - (0.5 * 0.3))/0.7
+
+```
+Given from the problem:
+The fraction of Random Clickers (RC) is P(RC) = 0.3, so the fraction of Truthful Clickers (RC) is P(TC) = 1 - P(RC) = 0.7
+The probability that a Random Clicker answers "Yes" is P(Yes|RC) = 0.5, and the probability that they answer "No" is P(No|RC) = 0.5
+The overall fraction of people who answered "Yes" is 65%, so P(Yes) = 0.65
+
+Find the probability that a Truthful Clicker answered "Yes": P(Yes|TC)
+
+Total Probability: P(Yes) = P(Yes|RC) * P(RC) + P(Yes|TC) * P(TC)
+0.65 = 0.5 * 0.3 + P(Yes|TC) * 0.7
+P(Yes|TC) = 0.7142857
+
+The fraction of people who are truthful clickers that answered yes is 0.7142857, or approximately 71.43%.
+
+## Part B
+```{r, echo=FALSE}
+# P(Positive|Disease) = 0.993
+# P(Negative|No Disease) = 0.9999, so P(Positive|No Disease) = 1 - 0.9999 = 0.0001
+# P(Disease) = 0.000025, so P(No Disease) = 1 - 0.000025 = 0.999975
+# Find probability that someone has the disease given that they tested positive: P(Disease|Positive)
+
+# Bayes Theorem: P(Disease|Positive) = (P(Positive|Disease) * P(Disease)) / P(Positive)
+# Total Probability: P(Positive) = P(Positive|Disease) * P(Disease) + P(Positive|No Disease) * P(No Disease)
+
+# P(Positive) = (0.993 * 0.000025) + (0.0001 * 0.999975)
+ppositive = (0.993 * 0.000025) + (0.0001 * 0.999975)
+
+# P(Disease|Positive) = (0.993 * 0.000025) / ppositive
+(0.993 * 0.000025) / ppositive
+
+```
+Given from the problem:
+P(Positive|Disease) = 0.993
+P(Negative|No Disease) = 0.9999, so P(Positive|No Disease) = 1 - 0.9999 = 0.0001
+P(Disease) = 0.000025, so P(No Disease) = 1 - 0.000025 = 0.999975
+
+Find probability that someone has the disease given that they tested positive: P(Disease|Positive)
+
+Bayes Theorem: P(Disease|Positive) = (P(Positive|Disease) * P(Disease)) / P(Positive)
+Total Probability: P(Positive) = P(Positive|Disease) * P(Disease) + P(Positive|No Disease) * P(No Disease)
+
+P(Positive) = (0.993 * 0.000025) + (0.0001 * 0.999975)
+ppositive = (0.993 * 0.000025) + (0.0001 * 0.999975) = 0.0001248225
+
+P(Disease|Positive) = (0.993 * 0.000025) / ppositive
+(0.993 * 0.000025) / ppositive = 0.1988824
+
+The probability that someone has the disease given that they test positive is 0.1988824, or approximately 19.89%.
+
