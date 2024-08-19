@@ -2,73 +2,96 @@
 Name: Mason Shu
 Date: 8/18/2024
 STA 380, Part 2: Exercises
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 # Load libraries
+library(dplyr)
+library(tidyverse)
 
+# Load the dataset
+billboard = read.csv("billboard.csv")
 
 ```
 
-# Probability practice
+# Wrangling the Billboard Top 100
 ## Part A
 ```{r, echo=FALSE}
-# The fraction of Random Clickers (RC) is P(RC) = 0.3, so the fraction of Truthful Clickers (RC) is P(TC) = 1 - P(RC) = 0.7
-# The probability that a Random Clicker answers "Yes" is P(Yes|RC) = 0.5, and the probability that they answer "No" is P(No|RC) = 0.5
-# The overall fraction of people who answered "Yes" is 65%, so P(Yes) = 0.65
-# Find probability that a Truthful Clicker answered "Yes": P(Yes|TC)
-
-# Total Probability: P(Yes) = P(Yes|RC) * P(RC) + P(Yes|TC) * P(TC)
-# 0.65 = 0.5 * 0.3 + P(Yes|TC) * 0.7
-(0.65 - (0.5 * 0.3))/0.7
-
+top_songs <- billboard %>%
+  group_by(performer, song) %>%
+  summarise(count = n(), .groups = 'drop') %>%  # Summarise and drop groups for proper sorting
+  arrange(desc(count)) %>%  # Sort by count in descending order
+  slice(1:10)  # Select the top 10 songs
+top_songs
 ```
-Given from the problem:
-The fraction of Random Clickers (RC) is P(RC) = 0.3, so the fraction of Truthful Clickers (RC) is P(TC) = 1 - P(RC) = 0.7
-The probability that a Random Clicker answers "Yes" is P(Yes|RC) = 0.5, and the probability that they answer "No" is P(No|RC) = 0.5
-The overall fraction of people who answered "Yes" is 65%, so P(Yes) = 0.65
-
-Find the probability that a Truthful Clicker answered "Yes": P(Yes|TC)
-
-Total Probability: P(Yes) = P(Yes|RC) * P(RC) + P(Yes|TC) * P(TC)
-0.65 = 0.5 * 0.3 + P(Yes|TC) * 0.7
-P(Yes|TC) = 0.7142857
-
-The fraction of people who are truthful clickers that answered yes is 0.7142857, or approximately 71.43%.
+The above table shows the top 10 most popular songs from 1958 to 2021 (2021 is not fully up-to-date) based on the total number of weeks that a song spent on the Billboard Top 100. Interestingly, no artist shares more than 1 song in the top 10.
 
 ## Part B
-```{r, echo=FALSE}
-# P(Positive|Disease) = 0.993
-# P(Negative|No Disease) = 0.9999, so P(Positive|No Disease) = 1 - 0.9999 = 0.0001
-# P(Disease) = 0.000025, so P(No Disease) = 1 - 0.000025 = 0.999975
-# Find probability that someone has the disease given that they tested positive: P(Disease|Positive)
+```{r, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
+# Step 1: Filter the data to exclude years 1958 and 2021
+filtered_data <- billboard %>%
+  filter(year > 1958 & year < 2021)
 
-# Bayes Theorem: P(Disease|Positive) = (P(Positive|Disease) * P(Disease)) / P(Positive)
-# Total Probability: P(Positive) = P(Positive|Disease) * P(Disease) + P(Positive|No Disease) * P(No Disease)
+# Step 2: Group by year and song, and count unique songs
+diversity_per_year <- filtered_data %>%
+  group_by(year, song) %>%
+  summarise(count = n()) %>%
+  ungroup() %>%
+  group_by(year) %>%
+  summarise(unique_songs = n())
 
-# P(Positive) = (0.993 * 0.000025) + (0.0001 * 0.999975)
-ppositive = (0.993 * 0.000025) + (0.0001 * 0.999975)
+# Step 3: Plot the data
+diversity_plot <- ggplot(diversity_per_year, aes(x = year, y = unique_songs)) +
+  geom_line(color = "blue") +
+  labs(title = "Musical Diversity on the Billboard Top 100 (1959-2020)",
+       x = "Year",
+       y = "Number of Unique Songs",
+       caption = "This line graph shows the number of unique songs that appeared on the Billboard Top
+       100 in each year from 1959 to 2020. An interesting trend I noticed is the historical low in
+       the diversity from 1990 to 2005ish, with a stark increase from around 2015.") +
+  theme_minimal()
 
-# P(Disease|Positive) = (0.993 * 0.000025) / ppositive
-(0.993 * 0.000025) / ppositive
+# Display the plot
+print(diversity_plot)
 
 ```
-Given from the problem:
-P(Positive|Disease) = 0.993
-P(Negative|No Disease) = 0.9999, so P(Positive|No Disease) = 1 - 0.9999 = 0.0001
-P(Disease) = 0.000025, so P(No Disease) = 1 - 0.000025 = 0.999975
 
-Find probability that someone has the disease given that they tested positive: P(Disease|Positive)
+## Part C
 
-Bayes Theorem: P(Disease|Positive) = (P(Positive|Disease) * P(Disease)) / P(Positive)
-Total Probability: P(Positive) = P(Positive|Disease) * P(Disease) + P(Positive|No Disease) * P(No Disease)
+```{r, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
+# Step 1: Identify songs that were on the Billboard Top 100 for at least 10 weeks
+ten_week_hits <- billboard %>%
+  group_by(performer, song) %>%
+  summarise(weeks_on_chart = n()) %>%
+  filter(weeks_on_chart >= 10)
 
-P(Positive) = (0.993 * 0.000025) + (0.0001 * 0.999975)
-ppositive = (0.993 * 0.000025) + (0.0001 * 0.999975) = 0.0001248225
+# Step 2: Count the number of ten-week hits per artist
+artist_hits <- ten_week_hits %>%
+  group_by(performer) %>%
+  summarise(ten_week_hits_count = n()) %>%
+  filter(ten_week_hits_count >= 30)
 
-P(Disease|Positive) = (0.993 * 0.000025) / ppositive
-(0.993 * 0.000025) / ppositive = 0.1988824
+# Step 3: Create a bar plot
+# Optional: Reorder the artists by the number of ten-week hits
+artist_hits <- artist_hits %>%
+  arrange(desc(ten_week_hits_count))
 
-The probability that someone has the disease given that they test positive is 0.1988824, or approximately 19.89%.
+# Plotting
+hits_plot <- ggplot(artist_hits, aes(x = fct_reorder(performer, ten_week_hits_count), y = ten_week_hits_count)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  coord_flip() +  # Flip coordinates for better readability
+  labs(title = "Number of Ten-Week Hits for Top 19 Artists",
+       x = "Artist",
+       y = "Number of Ten-Week Hits",
+       caption = "Figure: This bar plot shows the number of ten-week hits (songs that appeared on the
+       Billboard Top 100 for at least ten weeks) for the top 19 artists who had 30 or more such hits
+       in their career. As expected, pop artists dominate the charts, but interestingly, some country artists are top artists as well.") +
+  theme_minimal()
+
+# Display the plot
+print(hits_plot)
+
+```
 

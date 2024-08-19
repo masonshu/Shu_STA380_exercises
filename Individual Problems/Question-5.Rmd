@@ -1,0 +1,136 @@
+---
+Name: Mason Shu
+Date: 8/18/2024
+STA 380, Part 2: Exercises
+output: pdf_document
+---
+
+# Clustering and dimensionality reduction
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# Load libraries
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(Rtsne)
+
+# Load the dataset
+wine <- read.csv("wine.csv")
+```
+
+## 1. Scale the data & remove duplicates
+```{r, echo=FALSE}
+scaled_wine <- scale(wine[, 1:11])
+
+duplicates <- duplicated(scaled_wine)
+scaled_wine_unique <- scaled_wine[!duplicates, ]
+wine_unique <- wine[!duplicates, ]  # Wine data is also filtered to remove duplicates
+```
+
+## 2. PCA
+```{r, echo=FALSE}
+pca <- prcomp(scaled_wine_unique, center = TRUE, scale. = TRUE)
+pca_df <- data.frame(pca$x, color = wine_unique$color)  # Using the 'color' variable
+
+# Plot PCA with Color
+ggplot(pca_df, aes(x = PC1, y = PC2, color = color)) +
+  geom_point() +
+  labs(title = "PCA of Wine Dataset by Color")
+
+# Plot PCA with Quality
+ggplot(pca_df, aes(x = PC1, y = PC2, color = as.factor(wine_unique$quality))) +  # Using 'quality'
+  geom_point() +
+  labs(title = "PCA of Wine Dataset with Quality")
+
+```
+
+## 3. tSNE
+```{r, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
+tsne <- Rtsne(scaled_wine_unique, dims = 2, perplexity = 30, verbose = TRUE, max_iter = 1000)
+tsne_df <- data.frame(tsne$Y, color = wine_unique$color)
+
+# Plot tSNE
+ggplot(tsne_df, aes(x = X1, y = X2, color = color)) +
+  geom_point() +
+  labs(title = "t-SNE of Wine Dataset by Color")
+
+# Plot tSNE with Quality
+ggplot(tsne_df, aes(x = X1, y = X2, color = as.factor(wine_unique$quality))) +  # Using 'quality'
+  geom_point() +
+  labs(title = "t-SNE of Wine Dataset with Quality")
+```
+
+## K-means clustering
+```{r, echo=FALSE}
+# Perform K-Means clustering on the unique dataset
+
+set.seed(123)
+kmeans_result <- kmeans(scaled_wine_unique, centers = 2)
+
+# Creates a new data frame after the clustering with the clustering results and the original color and quality labels
+kmeans_df <- data.frame(scaled_wine_unique, 
+                        Cluster = factor(kmeans_result$cluster), 
+                        color = wine_unique$color, 
+                        quality = wine_unique$quality)
+
+# Add the Cluster information from K-Means to the existing PCA and tSNE data frames
+pca_df <- data.frame(pca$x, 
+                     Cluster = factor(kmeans_result$cluster), 
+                     color = wine_unique$color, 
+                     quality = wine_unique$quality)
+
+tsne_df <- data.frame(tsne$Y, 
+                      Cluster = factor(kmeans_result$cluster), 
+                      color = wine_unique$color, 
+                      quality = wine_unique$quality)
+
+# Plot the PCA with clustering results
+ggplot(pca_df, aes(x = PC1, y = PC2, color = Cluster)) +
+  geom_point() +
+  labs(title = "PCA of Wine Dataset with K-Means Clustering (Color)")
+
+# Plot tSNE with clustering results
+ggplot(tsne_df, aes(x = X1, y = X2, color = Cluster)) +
+  geom_point() +
+  labs(title = "t-SNE of Wine Dataset with K-Means Clustering (Color)")
+
+
+# PCA with K-Means Clustering and Quality
+ggplot(pca_df, aes(x = PC1, y = PC2, color = as.factor(quality))) +
+  geom_point() +
+  labs(title = "PCA of Wine Dataset with K-Means Clustering (Quality)")
+
+# tSNE with K-Means Clustering and Quality
+ggplot(tsne_df, aes(x = X1, y = X2, color = as.factor(quality))) +
+  geom_point() +
+  labs(title = "t-SNE of Wine Dataset with K-Means Clustering (Quality)")
+
+# Analyze the relationship between clusters and wine type (color)
+print("Table showing clusters and wine color")
+table(kmeans_df$Cluster, kmeans_df$color)
+
+# Plot the distribution of color within each cluster
+ggplot(kmeans_df, aes(x = Cluster, fill = color)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Distribution of Wine Color within Clusters")
+
+# Analyze the relationship between clusters and wine quality
+print("Table showing clusters and wine quality")
+table(kmeans_df$Cluster, kmeans_df$quality)
+
+# Plot the distribution of wine quality within each cluster
+ggplot(kmeans_df, aes(x = Cluster, fill = as.factor(quality))) +
+  geom_bar(position = "dodge") +
+  labs(title = "Distribution of Wine Quality within Clusters")
+
+
+# After the clustering was completed, we analyzed the clusters by comparing them to the actual color (red/white) and quality labels to see how well the clusters corresponded to these attributes.
+```
+
+## Conclusion
+
+PCA makes the most sense when trying to distinguish wine color, while tSNE makes more sense when trying to distinguish wine quality. This is because wine color is only of two values, red or white, while wine quality ranges from 1-10. PCA is better for getting a sense of the general structure and simpler patterns in the data like color, while tSNE performs better for more detailed and complex patterns in the data, like wine quality.
+
+This is evident in the plots after performing both PCA and tSNE with K-means clustering. Looking at the PCA plot for wine color, the clusters are well defined and do not intermingle with each other. Conversely, you will notice some red dots in in the same area as the blue cluster in the tSNE plot, and some blue dots in the red area. The reverse is true for wine quality, where it is very hard to distinguish the clusters for PCA, whereas the clusters are a bit clearer for tSNE. However, the results are not nearly as conclusive as for wine color.
+
+Overall, the unsupervised techniques are very capable of distinguishing wine color.

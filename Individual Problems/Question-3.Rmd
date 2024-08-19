@@ -1,0 +1,109 @@
+---
+Name: Mason Shu
+Date: 8/18/2024
+STA 380, Part 2: Exercises
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# Load libraries
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+
+
+# Load the dataset
+greenbuildings <- read.csv("greenbuildings.csv")
+
+```
+
+# Visual story telling part 1: green buildings
+## 1. Data Cleaning and Initial Exploration
+```{r, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
+# Clean the data as the "Excel guru" did by removing buildings with an occupancy rate of less than 10%
+clean_data <- greenbuildings %>% filter(leasing_rate >= 0.1)
+
+# Explore key variables, particularly focusing on rent, green ratings, and other building characteristics
+summary(clean_data)
+
+```
+
+Similar to the Excel guru's analysis, I also filtered out buildlings with an occupancy rate less than 10%.
+
+## 2. Compare Median Rent between Green and Non-Green Buildings
+```{r, echo=FALSE}
+# Calculate and compare the median rent for green and non-green buildings.
+median_rent <- clean_data %>%
+  group_by(green_rating) %>%
+  summarize(median_rent = median(Rent))
+
+# Boxplot of Rent by Green Rating
+ggplot(clean_data, aes(x = as.factor(green_rating), y = Rent)) +
+  geom_boxplot() +
+  labs(x = "Green Rating", y = "Rent (per square foot)", 
+       title = "Comparison of Rent by Green Certification") +
+  scale_x_discrete(labels = c("Non-Green", "Green"))
+
+```
+
+The median rent in dollars per square foot per calendar year for non-green buildings is 25 dollars, while the median rent for green buildings is 27.60. This aligns with the initial analysis that green buildings indeed bring a higher rent.
+
+
+## 3. Examine Potential Confounding Variables
+```{r, echo=FALSE}
+# Identify and visualize potential confounding variables, such as building size, class, location (e.g., cluster rent), and age.
+# Scatter plot of Rent vs. Size with Green Rating
+ggplot(clean_data, aes(x = size, y = Rent, color = as.factor(green_rating))) +
+  geom_point(alpha = 0.6) +
+  labs(x = "Building Size (sq ft)", y = "Rent (per square foot)",
+       title = "Rent vs. Size by Green Certification") +
+  scale_color_manual(values = c("red", "green"), labels = c("Non-Green", "Green"))
+
+```
+**Rent vs. Size by Green Certification:**
+
+The scatter plot shows that both green and non-green buildings have a wide range of sizes, but green buildings tend to have slightly higher rents across different sizes. However, size only doesn't fully account for the rent differences.
+
+```{r, echo=FALSE}
+# Boxplot of Rent by Class and Green Rating
+ggplot(clean_data, aes(x = as.factor(class_a), y = Rent, fill = as.factor(green_rating))) +
+  geom_boxplot() +
+  labs(x = "Building Class", y = "Rent (per square foot)",
+       title = "Rent by Building Class and Green Certification") +
+  scale_fill_manual(values = c("red", "green"), labels = c("Non-Green", "Green"))
+```
+
+
+**Rent by Building Class and Green Certification:**
+
+The boxplot indicates that green buildings, particularly those in Class A (1), generally have higher rents. This suggests that building class might be a confounder, with Class A buildings being more likely to be green-certified and commanding higher rents.
+
+
+## 4. Visualize the Effect of Confounders
+```{r, echo=FALSE}
+# Create a plot to show how rent might be influenced by both green status and a potential confounder (e.g., building class or size).
+
+# Rent vs. Cluster Rent by Green Certification
+ggplot(clean_data, aes(x = cluster_rent, y = Rent, color = as.factor(green_rating))) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Cluster Rent (per square foot)", y = "Rent (per square foot)",
+       title = "Rent vs. Cluster Rent by Green Certification") +
+  scale_color_manual(values = c("red", "green"), labels = c("Non-Green", "Green"))
+
+
+```
+**Rent vs. Cluster Rent by Green Certification:**
+
+The scatter plot shows that rents tend to correlate with the average rent in the building's cluster, regardless of green certification. However, green buildings generally have higher rents, even within the same cluster.
+
+
+## Conclusion
+
+- The initial analysis by the Excel guru focused on the median rent difference without adjusting for possible confounders like class, size, or cluster location.
+
+- The plots suggest that green buildings are more likely to be high-end (Class A) and located in areas with higher overall rents, which could explain some of the rent differences.
+
+- Green buildings seem to command higher rents however, which supports the initial guru's conclusion but with an asterisk - part of the premium may be due to these confounding factors.
+

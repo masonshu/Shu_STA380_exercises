@@ -1,0 +1,164 @@
+---
+Name: Mason Shu
+Date: 8/18/2024
+STA 380, Part 2: Exercises
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# Load libraries
+library(tidyverse)
+library(ggplot2)
+library(corrplot)
+```
+
+# Market segmentation
+```{r, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
+## Data Inspection
+
+
+social_marketing <- read.csv("social_marketing.csv")
+
+colnames(social_marketing)
+
+# Inspect the data structure
+str(social_marketing)
+
+# View summary statistics
+summary(social_marketing)
+
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
+## Data Processing
+
+# Remove identifier column
+social_marketing <- social_marketing[, -1]
+
+# Check for missing values
+sum(is.na(social_marketing))
+
+```
+## EDA
+```{r, echo=FALSE}
+# Distribution of Categories
+# Visualize the distribution of posts across different categories to identify any particularly popular or underrepresented categories.
+category_totals <- colSums(social_marketing)
+category_totals_df <- data.frame(Category = names(category_totals), Total = category_totals)
+ggplot(category_totals_df, aes(x = reorder(Category, Total), y = Total)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  theme_minimal() +
+  labs(title = "Total Posts by Category", x = "Category", y = "Total Posts")
+
+# Correlation analysis - 
+corr_matrix <- cor(social_marketing)
+
+corrplot(corr_matrix, 
+         method = "color", 
+         tl.col = "black",    # Text color
+         tl.cex = 0.6,        # Text size
+         tl.srt = 45,         # Rotate the text labels
+         cl.cex = 0.8)        # Color legend text size
+```
+The chatter category is the most popular category, as deemed by the human annotators. This may be partially explained by the annotators possibly using the "chatter" category to capture posts that didn't clearly fit into the other categories.
+
+Looking at the correlation matrix, some correlations make a lot of sense in the real world. For example, there is a high correlation between personal_fitness and health_nutrition. Another example is the higher correlation between fashion and beauty.
+
+## Clustering
+```{r, echo=FALSE, warning=FALSE}
+# Scale the data
+social_marketing_scaled <- scale(social_marketing)
+
+# Elbow method to determine the number of clusters
+wss <- sapply(1:10, function(k) {
+  kmeans(social_marketing_scaled, k, nstart = 10)$tot.withinss
+})
+
+plot(1:10, wss, type = "b", pch = 19, frame = FALSE,
+     xlab = "Number of Clusters K",
+     ylab = "Total within-clusters sum of squares",
+     main = "Elbow Method for Optimal K")
+
+# 2 clusters seems to be the optimal number based on the elbow plot
+kmeans_result <- kmeans(social_marketing_scaled, centers = 2, nstart = 25)
+social_marketing$cluster <- as.factor(kmeans_result$cluster)
+
+# Perform PCA for visualization
+pca_result <- prcomp(social_marketing_scaled, scale. = TRUE)
+
+# Create a data frame for the PCA results
+pca_df <- data.frame(pca_result$x[, 1:2], Cluster = social_marketing$cluster)
+
+# Plot the clusters
+ggplot(pca_df, aes(x = PC1, y = PC2, color = Cluster)) +
+  geom_point(size = 2) +
+  theme_minimal() +
+  labs(title = "PCA Plot of Clusters", x = "Principal Component 1", y = "Principal Component 2")
+
+cluster_summary <- social_marketing %>%
+  group_by(cluster) %>%
+  summarise_all(list(mean = mean))
+
+print(cluster_summary)
+
+```
+
+### My approach
+
+I first scaled the data to prepare it for clustering. Then I created an elbow plot to determine the optimal the number of clusters, which appeared to be k = 2. Afterwards, for visualization purposes, I reduced the dimensionality of the data using PCA and plotted the data. I also created a table to analyze the mean value of each category within each cluster to understand the characteristics of each segment.
+
+## Some Insights:
+
+### Cluster 1:
+
+chatter_mean = 3.870221:
+
+On average, users in Cluster 1 have about 3.87 posts classified under the "chatter" category. This suggests that users in this cluster tend to engage in general conversation or miscellaneous topics on social media.
+
+current_events_mean = 1.399390:
+
+Users in Cluster 1 post about 1.4 times on average about current events. This indicates a moderate interest in news or happenings in the world among users in this segment.
+
+travel_mean = 1.299049:
+
+With an average of 1.3 posts about travel, users in this cluster have some interest in travel, but it's not their primary focus.
+
+photo_sharing_mean = 2.101598:
+
+An average of 2.1 posts about photo sharing suggests that users in this cluster enjoy sharing photos, but it's not their dominant activity.
+
+**Overall for Cluster 1:**
+
+The users in this cluster seem to be fairly engaged in general conversation ("chatter") with moderate interest in current events, travel, and photo sharing. This cluster might represent a more casual or broad-interest segment of NutrientH20’s audience, with no strong focus on any specific topic.
+
+
+
+### Cluster 2:
+
+chatter_mean = 5.672869:
+
+Users in Cluster 2 have a higher average number of posts in the "chatter" category (5.67), indicating that they are more active in general conversation compared to Cluster 1.
+
+current_events_mean = 1.832107:
+
+With an average of 1.83 posts about current events, this cluster has a slightly stronger interest in news and world events than Cluster 1.
+
+travel_mean = 2.274340:
+
+Users in Cluster 2 post more about travel (2.27 posts on average), indicating a higher interest in travel-related content.
+
+photo_sharing_mean = 4.131545:
+
+The average of 4.13 posts about photo sharing suggests that users in this cluster are significantly more engaged in sharing photos compared to Cluster 1.
+
+**Overall for Cluster 2:**
+
+Cluster 2 users appear to be more active and engaged across several categories, particularly in "chatter" and "photo sharing." This segment might represent a more socially active group, with a strong inclination towards sharing content and participating in discussions about various topics, including travel and current events.
+
+## Key Takeaways:
+
+Cluster 1 could be characterized as a segment with moderate engagement, possibly representing users who are generalists or casual users of social media, without a strong focus on any particular category.
+
+Cluster 2 appears to be more engaged and social, particularly in sharing photos and participating in general chatter. This segment might be more valuable for targeted social media campaigns that focus on visual content and interactive communication.

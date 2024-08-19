@@ -1,0 +1,163 @@
+---
+Name: Mason Shu
+Date: 8/18/2024
+STA 380, Part 2: Exercises
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# Load libraries
+library(tidyverse)
+library(arules)
+library(arulesViz)
+
+
+```
+
+# Association rule mining
+## Load and Process the Data
+```{r, echo=FALSE}
+# Read the groceries data
+groceries_raw <- readLines("groceries.txt")
+
+# Split each line by comma to create a list of baskets
+groceries_list <- strsplit(groceries_raw, ",")
+
+# Convert the list of baskets into a transactions object
+groceries_trans <- as(groceries_list, "transactions")
+
+# Summarize
+cat("Summary of the structure of the data after processing", "\n")
+summary(groceries_trans)
+
+```
+
+Prior to performing any analysis on the data, there was the challenge of loading and processing the data, especially since the data was unstructured in a .txt file. Therefore, after reading in the lines of the data, I split each string by commas into a list. Afterwards, I converted the list of baskets into a "transactions" format which is used by the arules package for association rule mining.
+
+## Run the Apriori Algorithm
+```{r plot_only, echo=FALSE, message=FALSE, warning=FALSE}
+grocery_rules <- apriori(groceries_trans, 
+                         parameter = list(support = 0.01, 
+                                          confidence = 0.2, 
+                                          maxlen = 5))
+
+# inspect(grocery_rules)
+
+# Graph-based visualization
+plot(grocery_rules, method = "graph", control = list(type = "items"))
+
+strong_rules <- subset(grocery_rules, lift > 3 & confidence > 0.3)
+cat("Plot of associations, where lift >3 & confidence > 0.3")
+plot(strong_rules, method = "graph", control = list(type = "items"))
+```
+
+
+```{r, echo=FALSE}
+cat("Table of associations, where lift >3 & confidence > 0.3")
+# Focus on strong associations and interesting rules
+inspect(subset(grocery_rules, lift > 3 & confidence > 0.3))
+```
+
+**The table above focuses on rules where:**
+
+  - **Lift > 3**: The items in the rule are at least three times more likely to be bought together than by random chance.
+  
+  - **Confidence > 0.3**: There's at least a 30% chance that when the items on the left-hand side (LHS) are bought, the items on the right-hand side (RHS) are also bought.
+  
+I picked these thresholds because I wanted to focus on the more interesting, meaningful rules. For example, rules with high support might just reflect common items (like whole milk), but rules with high lift and confidence can reveal stronger and more unexpected associations between items. Also, this helps reduce complexity in the number of rules, allowing us to focus on the most insightful rules.
+
+**Association Rules Breakdown:**
+
+**Rule 1: {beef} => {root vegetables}**
+
+- **Support: 0.0174 (1.74%)**
+
+  This means that 1.74% of all transactions in the dataset include both "beef" and "root vegetables."
+  
+- **Confidence: 0.3314 (33.14%)**
+
+  This indicates that 33.14% of the transactions that include "beef" also include "root vegetables."
+  
+- **Lift: 3.04**
+
+  The lift value of 3.04 suggests that customers who buy "beef" are 3.04 times more likely to also buy "root vegetables" compared to the likelihood of buying "root vegetables" independent of "beef."
+
+This rule indicates a strong association between "beef" and "root vegetables." If a customer buys beef, there's a significant likelihood (33.14%) that they will also buy root vegetables, and this combination is more likely to occur than if the two items were bought independently. This item set makes sense since many cooking recipes use both beef and root vegetables together, like beef stew.
+
+**Rule 2: {citrus fruit, root vegetables} => {other vegetables}**
+
+- **Support: 0.0104 (1.04%)**
+
+  1.04% of all transactions include the combination of "citrus fruit," "root vegetables," and "other vegetables."
+  
+- **Confidence: 0.5862 (58.62%)**
+
+  58.62% of the transactions that include both "citrus fruit" and "root vegetables" also include "other vegetables."
+
+- **Lift: 3.03**
+
+  The lift value of 3.03 means that customers who buy "citrus fruit" and "root vegetables" are 3.03 times more likely to also buy "other vegetables" compared to the general likelihood of buying "other vegetables."
+
+This rule highlights a strong association between these three items. If a customer buys citrus fruit and root vegetables, there's a high chance (58.62%) that they will also purchase other vegetables. 
+
+**Rule 3: {citrus fruit, other vegetables} => {root vegetables}**
+
+- **Support: 0.0104 (1.04%)**
+
+  1.04% of transactions include "citrus fruit," "other vegetables," and "root vegetables."
+
+- **Confidence: 0.3592 (35.92%)**
+
+  35.92% of the transactions that include both "citrus fruit" and "other vegetables" also include "root vegetables."
+
+- **Lift: 3.30**
+  The lift value of 3.30 indicates that customers who buy "citrus fruit" and "other vegetables" are 3.30 times more likely to also buy "root vegetables" compared to the general likelihood of buying "root vegetables."
+
+This rule shows a moderately strong association. If a customer buys citrus fruit and other vegetables, there's a 35.92% chance they will also buy root vegetables.
+
+**Rule 4: {root vegetables, tropical fruit} => {other vegetables}**
+
+- **Support: 0.0123 (1.23%)**
+
+  1.23% of all transactions include "root vegetables," "tropical fruit," and "other vegetables."
+  
+- **Confidence: 0.5845 (58.45%)**
+
+  58.45% of the transactions that include both "root vegetables" and "tropical fruit" also include "other vegetables."
+  
+- **Lift: 3.02**
+
+  The lift value of 3.02 suggests that customers who buy "root vegetables" and "tropical fruit" are 3.02 times more likely to also buy "other vegetables" than the average likelihood of buying "other vegetables."
+
+There is a strong association between these items. If a customer buys root vegetables and tropical fruit, they are highly likely (58.45%) to also purchase other vegetables.
+
+**Rule 5: {other vegetables, tropical fruit} => {root vegetables}**
+
+- **Support: 0.0123 (1.23%)**
+
+  1.23% of transactions include "other vegetables," "tropical fruit," and "root vegetables."
+
+- **Confidence: 0.3428 (34.28%)**
+
+  34.28% of the transactions that include both "other vegetables" and "tropical fruit" also include "root vegetables."
+
+- **Lift: 3.14**
+  The lift value of 3.14 means that customers who buy "other vegetables" and "tropical fruit" are 3.14 times more likely to also buy "root vegetables" than the average likelihood of buying "root vegetables."
+
+This rule shows a moderate association. Customers buying other vegetables and tropical fruit have a 34.28% chance of also buying root vegetables.
+
+Rules 2-5 center around similar food items: fruit and vegetables. It makes sense to me that they have a strong association with each other, both being plant-based and generally considered healthy staples of a person's diet.
+
+```{r, echo=FALSE}
+# Scatterplot of support vs confidence
+# plot(grocery_rules, method = "scatterplot", measure = c("support", "confidence"))
+
+
+
+# Two-key plot
+# plot(grocery_rules, method = "two-key plot")
+
+
+```
+

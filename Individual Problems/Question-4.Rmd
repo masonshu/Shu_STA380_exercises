@@ -1,0 +1,108 @@
+---
+Name: Mason Shu
+Date: 8/18/2024
+STA 380, Part 2: Exercises
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# Load libraries
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+
+
+# Load the dataset
+capmetro_data <- read.csv("capmetro_UT.csv")
+
+```
+
+# Visual story telling part 2: Capital Metro data
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
+## 1. Load and Inspect the Data
+# Inspect the structure and summary
+str(capmetro_data)
+summary(capmetro_data)
+
+```
+## 1. Explore Ridership Patterns by Time of Day
+```{r, echo=FALSE}
+# Summarize data by hour of day
+ridership_by_hour <- capmetro_data %>%
+  group_by(hour_of_day) %>%
+  summarise(avg_boarding = mean(boarding),
+            avg_alighting = mean(alighting))
+
+# Plot the data
+ggplot(ridership_by_hour, aes(x = hour_of_day)) +
+  geom_line(aes(y = avg_boarding, color = "Boarding")) +
+  geom_line(aes(y = avg_alighting, color = "Alighting")) +
+  labs(title = "Average Ridership by Hour of the Day",
+       x = "Hour of Day",
+       y = "Average Number of Passengers",
+       color = "Legend",
+       caption = "From the graph, the trend seems to indicate that more people get off the
+       train in early hours of the day, where as more people board during later hours of the day
+       (noon onwards). Notice the peaks around 8am and 5pm, which are typical commuting times.") +
+  theme_minimal()
+```
+
+## 2. Impact of Day of the Week and Weekend:
+```{r, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
+# Summarize data by day of the week
+ridership_by_day <- capmetro_data %>%
+  group_by(day_of_week, weekend) %>%
+  summarise(avg_boarding = mean(boarding),
+            avg_alighting = mean(alighting))
+
+# Plot the data
+ggplot(ridership_by_day, aes(x = day_of_week, y = avg_boarding, fill = weekend)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Average Boardings by Day of the Week",
+       x = "Day of the Week",
+       y = "Average Number of Passengers",
+       fill = "Weekend",
+       caption = "From the graph, one can see that weekdays are much more popular for
+       boardings than weekends, which could be explained by the need for commuting to work on
+       weekdays.")
+  theme_minimal()
+
+```
+
+## 3. Explore Seasonal Effects:
+```{r, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
+# Summarize data by month and hour of the day
+ridership_by_month <- capmetro_data %>%
+  group_by(month, hour_of_day) %>%
+  summarise(avg_boarding = mean(boarding))
+
+# Plot the data with facets
+ggplot(ridership_by_month, aes(x = hour_of_day, y = avg_boarding)) +
+  geom_line() +
+  facet_wrap(~ month) +
+  labs(title = "Average Ridership by Hour of the Day Across Months",
+       x = "Hour of Day",
+       y = "Average Number of Passengers",
+       caption = "From the graph, it seems that the months follow relatively the same trend
+       throughout the day, with October having a slightly higher number of passengers. ")
+  theme_minimal()
+
+```
+
+## 4. Temperature:
+```{r, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
+# Scatter plot of temperature vs. boardings
+ggplot(capmetro_data, aes(x = temperature, y = boarding)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "lm", color = "blue", se = FALSE) +
+  labs(title = "Effect of Temperature on Ridership",
+       x = "Temperature (F)",
+       y = "Number of Boardings",
+       caption = "As temperature increases, it seems that the number of boardings increases
+       as well.") +
+  theme_minimal()
+
+```
+

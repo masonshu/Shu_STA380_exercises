@@ -1,0 +1,179 @@
+---
+Name: Mason Shu
+Date: 8/18/2024
+STA 380, Part 2: Exercises
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# Load libraries
+library(tm)
+library(SnowballC)
+library(tidyverse)
+library(cluster)
+library(factoextra)
+library(wordcloud)
+library(FactoMineR)
+library(dplyr)
+library(wordcloud)
+
+```
+Question:
+The question: In the Reuters C50 text corpus, what words are the most frequently used after clustering the documents?
+
+# The Reuters corpus
+## Load the dataset
+```{r, echo=FALSE}
+main_path <- "ReutersC50"  # Set this to your folder path
+train_path <- file.path(main_path, "C50train")
+test_path <- file.path(main_path, "C50test")
+
+# Load the training data
+train_corpus <- Corpus(DirSource(train_path, recursive = TRUE),
+                       readerControl = list(reader = readPlain, language = "en"))
+
+# Use the training set because we are trying to analyze the existing data and find patterns in it
+
+```
+
+### Preprocessing
+```{r, echo=FALSE}
+preprocess_corpus <- function(corpus) {
+  corpus <- tm_map(corpus, content_transformer(tolower))
+  corpus <- tm_map(corpus, removePunctuation)
+  corpus <- tm_map(corpus, removeNumbers)
+  corpus <- tm_map(corpus, removeWords, stopwords("english"))
+  corpus <- tm_map(corpus, stripWhitespace)
+  corpus <- tm_map(corpus, stemDocument)
+  return(corpus)
+}
+
+# Preprocess the training data
+train_corpus <- preprocess_corpus(train_corpus)
+
+# Create a Document-Term Matrix (DTM):
+dtm <- DocumentTermMatrix(train_corpus)
+# tfidf is the weighted document-term matrix where term frequencies are adjusted using the TF-IDF method
+# Reduces the influence of common words and highlights distinctive words
+tfidf <- weightTfIdf(dtm)
+
+```
+
+Approach:
+
+For this problem, I only used the training set because we are trying to analyze the existing data and find patterns in it.
+
+I first preprocessed the data to prepare it for analysis. First, I converted all the text to lowercase for uniformity. Then, removed common words like "the" and "and" as well. I also removed punctuation, white spaces, and numbers to examine only the words. I also stemmed the words to their root form to reduce some dimensionality by grouping similar words. Finally, I used a tf-idf transformation to adjust term frequencies and reduce the influence of common words and highlight distinctive words.
+
+For analysis, the approach I used was both PCA and K-means clustering. Due to the high dimensionality of the dataset, I sought to reduce it significantly using PCA, reducing it to 50 components only. I then constructed an elbow plot find the optimal k for k-mean clustering, which was determined to be k = 7. Using k = 7, I conduct k-means clustering to determine the most frequently used words in each of the seven clusters. Additionally, I included word clouds to better illustrate the most common words in each cluster.
+
+## Results
+
+### K-means clustering
+```{r, include=FALSE}
+# Perform PCA on the TF-IDF matrix
+pca_res <- PCA(as.data.frame(as.matrix(tfidf)), ncp = 50)  # Reduce to 50 components
+
+# Get the reduced data (principal components)
+reduced_data <- pca_res$ind$coord
+```
+
+
+```{r, echo=FALSE}
+# Perform K-means clustering on the reduced data
+wcss <- function(k) {
+  kmeans(reduced_data, centers = k, nstart = 25)$tot.withinss
+}
+
+# Now, you can create the elbow plot again using the reduced data
+k_values <- 1:10
+wcss_values <- map_dbl(k_values, wcss)
+
+# Elbow plot
+plot(k_values, wcss_values, type="b", pch = 19, frame = FALSE, 
+     xlab="Number of clusters K", 
+     ylab="Total within-clusters sum of squares", 
+     main="Elbow Method for Optimal K (Reduced Dimensions)")
+
+# Optimal K calculation remains the same
+optimal_k <- which(diff(diff(wcss_values)) == min(diff(diff(wcss_values)))) + 1
+cat("The optimal number of clusters (K) is:", optimal_k, "\n")
+
+# The optimal number of clusters found is 7
+
+
+# Perform K-means clustering with K = 7
+set.seed(123)  # Setting seed for reproducibility
+k <- 7  # Optimal number of clusters
+kmeans_res <- kmeans(reduced_data, centers = k, nstart = 25)
+
+# Add the cluster assignment to the original data for further analysis
+clustered_data <- as.data.frame(reduced_data)
+clustered_data$cluster <- kmeans_res$cluster
+
+
+# Visualize the clusters (using the first two principal components for 2D visualization)
+ggplot(clustered_data, aes(x = Dim.1, y = Dim.2, color = as.factor(cluster))) +
+  geom_point(size = 2) +
+  labs(title = "K-means Clustering on PCA-Reduced Data", x = "PC1", y = "PC2", color = "Cluster") +
+  theme_minimal()
+
+
+# Summary of cluster sizes
+cat("Cluster sizes:\n")
+print(table(clustered_data$cluster))
+
+# Assign original documents to clusters
+cluster_assignments <- kmeans_res$cluster
+dtm_clustered <- as.data.frame(as.matrix(dtm))
+dtm_clustered$cluster <- cluster_assignments
+
+# Find the top terms in each cluster
+top_terms_by_cluster <- dtm_clustered %>%
+  group_by(cluster) %>%
+  summarise_all(mean) %>%
+  gather(term, frequency, -cluster) %>%
+  group_by(cluster) %>%
+  top_n(10, frequency)  # Get top 10 terms per cluster
+
+# Assuming your data is stored in a data frame called 'top_terms_by_cluster'
+sorted_terms <- top_terms_by_cluster %>%
+  arrange(cluster, desc(frequency))  # Sort by cluster first, then by frequency in descending order
+
+# Print the sorted table
+cat("The optimal number of clusters (K) is:", "\n")
+print(sorted_terms, n = Inf)
+
+# Create word clouds for each cluster
+
+for (i in unique(sorted_terms$cluster)) {
+  wordcloud(words = sorted_terms$term[sorted_terms$cluster == i], 
+            freq = sorted_terms$frequency[sorted_terms$cluster == i], 
+            scale = c(3, 0.5), max.words = 10, colors = brewer.pal(8, "Dark2"))
+  title(paste("Word Cloud for Cluster", i))
+}
+
+```
+
+
+Conclusion:
+
+Looking at the word clouds for the seven clusters, said seems to be extremely common. This seems to suggest that much of the text pertains to quotes, perhaps quoting people.
+
+Cluster 1: The most frequent words seem to pertain to countries, such as Tibet, China, and Colombia.
+
+Cluster 2: The most frequent words seem to pertain to boats, with words like "boat" and "sail", and Britain, with words like "british" and "pound".
+
+Cluster 3: The most frequent words seem to pertain to countries in Africa/Middle East, with words like "chad" and "arab" and "world" the most common.
+
+Cluster 4: The most frequent words seem to pertain to companies, with terms like "compani" "corp" and "analyst" being the most common.
+
+Cluster 5: The banking industry seems to be relevant with words like "bank", "market", and "share" appearing.
+
+Cluster 6: The most frequent words appear to be pertain to countries, with "czech" and "spain" as number 1 and 2. Also, there appears to be a relation to sports, with words like "team", "play", "striker", and "win".
+
+Cluster 7: The most frequent words appear to be related to China, with "china", "hong", "kong", "beij", "chines" appearing as frequent words.
+
+
+If presenting this data to stakeholders, one can conclude that the most common themes in the Reuters C50 text corpus are various countries, the economy, and corporations. As such, it may provide valuable information about events pertaining to certain countries (particularly China, Tibet, Colombia, and Chad), markets and stocks, and the business/working world.
